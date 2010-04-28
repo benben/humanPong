@@ -5,24 +5,42 @@
 #include "ofxOpenCv.h"
 #include "ofxBox2d.h"
 
-class testApp : public ofSimpleApp{
+class testApp : public ofBaseApp{
 
 	public:
 
 		void setup();
-		void setupGame();
 		void update();
-		void updateGame();
 		void draw();
-		void drawGame();
 
-		void keyPressed  (int key);
-		void keyReleased (int key);
-
+		void keyPressed(int key);
+		void keyReleased(int key);
 		void mouseMoved(int x, int y );
 		void mouseDragged(int x, int y, int button);
 		void mousePressed(int x, int y, int button);
 		void mouseReleased(int x, int y, int button);
+		void windowResized(int w, int h);
+
+		ofVideoGrabber 		    vidGrabber;
+
+        ofxCvColorImage		    colorImg;
+
+        ofxCvGrayscaleImage 	grayImage;
+		ofxCvGrayscaleImage 	grayBg;
+		ofxCvGrayscaleImage 	grayDiff;
+		ofxCvGrayscaleImage     grayDiffSmall;
+
+        ofxCvContourFinder 	contourFinder;
+
+		int 				threshold;
+		bool				bLearnBakground;
+
+
+        //HUMAN PONG RELATED STUFF
+
+		void setupGame();
+		void updateGame();
+		void drawGame();
         void resetBall();
 
         vector<ofxBox2dRect*>	paddles;
@@ -37,21 +55,5 @@ class testApp : public ofSimpleApp{
         ofxCvBlob               blob;
 
         bool                    bDrawDiagnostic;
-
-        ofVideoGrabber 		    vidGrabber;
-
-        ofxCvColorImage		    colorImg;
-
-        ofxCvGrayscaleImage 	grayImage;
-        ofxCvGrayscaleImage 	grayBg;
-        ofxCvGrayscaleImage 	grayDiff;
-        ofxCvGrayscaleImage		grayDiffSmall;
-
-        int 				    threshold;
-        bool				    bLearnBakground;
-
-        bool				    bForceInward;
-
-        ofxCvContourFinder      contourFinder;
 };
 #endif
