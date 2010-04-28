@@ -1,14 +1,6 @@
 #include "testApp.h"
 #include "ofxBox2d.h"
 
-
-void testApp::resetBall(){
-	cout << "resetting ball";
-	ballX = ofGetWidth()/2;
-	ballY = ofGetHeight()/2;
-	ball.setPosition(ballX, ballY);
-	ball.setVelocity(0,0);
-}
 //--------------------------------------------------------------
 void testApp::setup(){
 	ofSetVerticalSync(true);
@@ -21,19 +13,15 @@ void testApp::setup(){
 	grayImage.allocate(320,240);
 	grayBg.allocate(320,240);
 	grayDiff.allocate(320,240);
-	grayDiffSmall.allocate(60,40);
+	grayDiffSmall.allocate(320,240);
 
 	bLearnBakground = true;
 	threshold = 50;
 	bDrawDiagnostic = true;
 
-	ofBackground(127,127,127);
+	printf("Windowsize is %d x %d\n",ofGetWidth(),ofGetHeight());
 
-	setupGame();
-}
-
-//--------------------------------------------------------------
-void testApp::setupGame() {
+	//PONG STUFF
 	dir = 1;
 	counter = 0;
 	paddleW = 20;
@@ -41,25 +29,16 @@ void testApp::setupGame() {
 	ballRadius = 20;
 	ballX = 300;
 	ballY = 300;
-//	goUp1 = goUp2 = goDown1 = goDown2 = false;
 
 	box2d.init();
 	box2d.setGravity(0, 0);
-	box2d.createFloor();
+	//box2d.createFloor();
 	box2d.checkBounds(true);
 	box2d.setFPS(30.0);
 
 	ball.setPhysics(1, 1.1, 0.0);
 	ball.setup(box2d.getWorld(), ballX, ballY, ballRadius);
 
-	/*paddle1.setPhysics(3.0, 0.53, 0.1);
-	paddle1.setup(box2d.getWorld(),  100, 100, 15, 50, true);
-	boxes.push_back(paddle1);
-
-	paddle2.setPhysics(3.0, 0.53, 0.1);
-	paddle2.setup(box2d.getWorld(), 500, 100, 15, 50, true);
-	boxes.push_back(paddle2);
-	*/
 	ofxBox2dRect ceiling;
 	ceiling.setPhysics(3.0, 0.53, 0.1);
 	ceiling.setup(box2d.getWorld(),  0, 3, ofGetWidth(), 10,true);
@@ -80,7 +59,6 @@ void testApp::setupGame() {
 	paddles.push_back(paddle2);
 }
 
-
 //--------------------------------------------------------------
 void testApp::update(){
 
@@ -95,52 +73,53 @@ void testApp::update(){
         colorImg.setFromPixels(vidGrabber.getPixels(), 320,240);
 
         grayImage = colorImg;
+
 		if (bLearnBakground == true){
 			grayBg = grayImage;		// the = sign copys the pixels from grayImage into grayBg (operator overloading)
 			bLearnBakground = false;
 		}
 
 		// take the abs value of the difference between background and incoming and then threshold:
-
 		grayDiff.absDiff(grayBg, grayImage);
 		grayDiff.threshold(threshold);
+		grayDiff.blur(5);
 
-		contourFinder.findContours(grayDiff,200, (320*240)/6, 2, false);
-
-		grayDiffSmall.scaleIntoMe(grayDiff);
-		grayDiffSmall.blur(5); // really blur the image alot!
+		// find contours which are between the size of 20 pixels and 1/3 the w*h pixels.
+		// also, find holes is set to true so we will get interior contours as well....
+		contourFinder.findContours(grayDiff, 20, (340*240)/3, 10, true);	// find holes
 	}
 
 
+            ofxCvBlob blob1;
+		ofxCvBlob blob2;
 
-	// on every frame
-	// we reset the forces
-	// add in any forces on the particle
-	// perfom damping and
-	// then update
+		if(contourFinder.nBlobs > 1){
+            blob1 = contourFinder.blobs[0];
+            blob2 = contourFinder.blobs[1];
+        if (blob2.boundingRect.x < blob1.boundingRect.x){
+            ofxCvBlob blobTemp = blob1;
+            blob1 = blob2;
+            blob2 = blobTemp;
+        }
 
-
-	/*for (int i = 0; i < particles.size(); i++){
-		particles[i].resetForce();
-		// get the force from the vector field:
-		ofxVec2f frc;
-		frc = VF.getForceFromPos(particles[i].pos.x, particles[i].pos.y);
-		particles[i].addForce(frc.x, frc.y);
-		particles[i].addDampingForce();
-		particles[i].update();
-
-	}*/
+        //blob1.draw(0,0);
+        paddle1->setPosition(100, blob1.boundingRect.y);
+        //blob2.draw(0,0);
+        paddle2->setPosition(ofGetWidth()-100, blob2.boundingRect.y);
+        printf("pos: %f\n",blob2.boundingRect.y);
+        }
 
 	updateGame();
 
 }
 
+//--------------------------------------------------------------
 void testApp::updateGame() {
 	counter++;
 	if (counter < 60){
 	}
 	else if (counter == 60){
-		cout << "YEAH" << endl;
+		printf("Game started!\n");
 		int yDir = 1;
 		if (ofRandom(0,10) > 5)
 			yDir = -1;
@@ -156,7 +135,7 @@ void testApp::updateGame() {
 		ballX = ball.getPosition().x;
 		ballY = ball.getPosition().y;
 		if (ballX > ofGetWidth()){
-			cout << "Player 1 wins";
+			cout << "Player 1 wins\n";
 			dir = -1;
 			resetBall();
 			counter = 0;
@@ -165,39 +144,10 @@ void testApp::updateGame() {
 			dir = 1;
 			resetBall();
 			counter = 0;
-			cout << "Player 2 wins";
+			cout << "Player 2 wins\n";
 		}
 	}
 
-/*	if(goUp1){
-		if (paddle1y>paddleH)
-			paddle1y -=10;
-		else
-			paddle1y = paddleH;
-	}
-	if(goDown1){
-		if (paddle1y<ofGetHeight()-paddleH)
-			paddle1y += 10;
-		else
-			paddle1y = ofGetHeight()-paddleH;
-	}
-
-	if(goUp2){
-		if (paddle2y>paddleH)
-			paddle2y -=10;
-		else
-			paddle2y = paddleH;
-	}
-	if(goDown2){
-		if (paddle2y<ofGetHeight()-paddleH)
-			paddle2y += 10;
-		else
-			paddle2y = ofGetHeight()-paddleH;
-	}
-
-	paddle1.setPosition(ofPoint(paddle1x, paddle1y, 0));
-	paddle2.setPosition(ofPoint(paddle2x, paddle2y, 0));
-*/
 	if (paddle1->getPosition().y > ofGetHeight()-paddleH)
 		paddle1->setPosition(paddle1->getPosition().x, ofGetHeight()-paddleH);
 	if (paddle1->getPosition().y < 0)
@@ -210,121 +160,60 @@ void testApp::updateGame() {
 	box2d.update();
 }
 
+//--------------------------------------------------------------
+void testApp::resetBall(){
+	printf("Resetting Ball!\n");
+	ballX = ofGetWidth()/2;
+	ballY = ofGetHeight()/2;
+	ball.setPosition(ballX, ballY);
+	ball.setVelocity(0,0);
+}
 
 //--------------------------------------------------------------
 void testApp::draw(){
 
 	if (bDrawDiagnostic == true){
 
-		// draw the incoming, the grayscale, the bg and the thresholded difference
-		ofSetColor(0xffffff);
-		colorImg.draw(20,20);
-		grayImage.draw(360,20);
-		grayBg.draw(20,280);
+        ofBackground(100,100,100);
+        ofSetColor(0xffffff);
+        colorImg.draw(0,0);
+        grayImage.draw(320,0);
+        grayBg.draw(0,240);
+        grayDiff.draw(320,240);
 
-		grayDiff.draw(360,280);
-		for(int i=0; i<contourFinder.nBlobs;i++){
-			contourFinder.blobs[i].draw(0,0);
-		}
-		// draw the blurry image
-		grayDiffSmall.draw(360, 540, 320, 240);
+        ofFill();
+        ofSetColor(0x333333);
+        ofRect(320,480,320,240);
+        ofSetColor(0xffffff);
+
+        // draw the incoming, the grayscale, the bg and the thresholded difference
+        ofSetColor(0xffffff);
+        for (int i = 0; i < contourFinder.nBlobs; i++){
+            contourFinder.blobs[i].draw(320,480);
+        }
+
+        // finally, a report:
+
+        ofSetColor(0xffffff);
+        char reportStr[1024];
+        sprintf(reportStr, "bg subtraction and blob detection\npress ' ' to capture bg\nthreshold %i (press: +/-)\nnum blobs found %i, fps: %f", threshold, contourFinder.nBlobs, ofGetFrameRate());
+        ofDrawBitmapString(reportStr, 20, 600);
 
     } else {
-
-		/*ofEnableAlphaBlending();
-		ofSetColor(255,255,255, 50);
-		colorImg.draw(0,0,ofGetWidth(), ofGetHeight());
-		ofSetColor(0,130,130, 200);
-		VF.draw();
-		ofSetColor(0x000000);
-		for (int i = 0; i < particles.size(); i++){
-			particles[i].draw();
-		}*/
-		ofBackground(0,0,0);
-		ofSetColor(255,255,255);
-		ofRect((ofGetWidth()/2)-5,0,5,ofGetHeight());
-
-		/*for(int i=0; i<paddles.size(); i++) {
-			paddles[i]->destroyShape();
-			delete paddles[i];
-		}
-
-		paddles.clear();
-		*/
-
-		//for(int i=0;i<contourFinder.nBlobs;i++){
-			//float nw = ofGetWidth()/320 * contourFinder.blobs[i].boundingRect.width;
-			/*contourFinder.blobs[0].boundingRect.width= contourFinder.blobs[0].boundingRect.width*3.2;
-			contourFinder.blobs[0].boundingRect.height=contourFinder.blobs[0].boundingRect.height*3.2;
-			contourFinder.blobs[0].boundingRect.x=contourFinder.blobs[0].boundingRect.x*3.2;
-			contourFinder.blobs[0].boundingRect.y=contourFinder.blobs[0].boundingRect.y*3.2;*/
-
-			ofxCvBlob blob1;
-			ofxCvBlob blob2;
-			if(contourFinder.nBlobs > 1){
-				blob1 = contourFinder.blobs[0];
-				blob2 = contourFinder.blobs[1];
-				if (blob2.boundingRect.x < blob1.boundingRect.x){
-					ofxCvBlob blobTemp = blob1;
-					blob1 = blob2;
-					blob2 = blobTemp;
-				}
-				//blob1.draw(0,0);
-				paddle1->setPosition(100, blob1.boundingRect.y*3.5);
-				//blob2.draw(0,0);
-				paddle2->setPosition(900, blob2.boundingRect.y*3.5);
-				}
-
-
-
-			//blob = contourFinder.blobs[1];
-			//paddle2->setPosition(900, blob.boundingRect.y*4);
-			/*if(blob.boundingRect.x<150 || blob.boundingRect.x>ofGetWidth()-150 &&
-			   (blob.boundingRect.width>50 && blob.boundingRect.height>50) &&
-			   (blob.boundingRect.width<200 && blob.boundingRect.height<200)){
-				ofSetColor(255, 0, 0);
-				ofxBox2dRect* paddle= new ofxBox2dRect();
-				paddle->setPhysics(3.0, 0.53, 0.1);
-				paddle->setup(box2d.getWorld(),  blob.boundingRect.x, blob.boundingRect.y, blob.boundingRect.width, blob.boundingRect.height, true);
-				paddles.push_back(paddle);
-			}*/
-
-			//ofRect(blob.boundingRect.x, contourFinder.blobs[i].boundingRect.y, contourFinder.blobs[i].boundingRect.width, contourFinder.blobs[i].boundingRect.height);
-		//}
-
-		drawGame();
+        // DRAW THE GAME
+        ball.draw();
+        for(int i=0; i<paddles.size(); i++) {
+            paddles[i]->draw();
+        }
+        ofBackground(0,0,0);
+        ofSetColor(255,255,255);
+        ofFill();
+        ofRect(ofGetWidth()-3,0,3, ofGetHeight());
+        ofRect(0,0,3, ofGetHeight());
+        ofRect(0,ofGetHeight()-3,ofGetWidth(), 3);
+        ofRect(0,0,ofGetWidth(), 3);
+        ofRect((ofGetWidth()/2)-5,0,5,ofGetHeight());
 	}
-
-	/*ofSetColor(0,130,130, 200);
-	ofRect(10,550,330,130);
-	ofSetColor(0,0,0);
-	ofDrawBitmapString("press ' ' (space) to snap background\npress 'd' to toggle diagnostic\ndrag mouse to add particles\npress 'r' to reset particles\npress 't' to toggle force direction", 20, 600);
-	*/
-}
-
-//--------------------------------------------------------------
-void testApp::drawGame() {
-	 ball.draw();
-	for(int i=0; i<paddles.size(); i++) {
-		paddles[i]->draw();
-	}
-	/*
-	ofSetColor(255,255,255);
-	ofFill();
-	ofPoint pos = ball.getPosition();
-	ofCircle(pos.x, pos.y, ballRadius);
-	pos = paddle1->getPosition();
-	ofRect(pos.x-paddleW, pos.y-paddleH, paddleW*2, paddleH*2);
-	pos = paddle2->getPosition();
-	ofRect(pos.x-paddleW, pos.y-paddleH, paddleW*2, paddleH*2);
-	*/
-	ofSetColor(255,255,255);
-	ofFill();
-	ofRect(ofGetWidth()-3,0,3, ofGetHeight());
-	ofRect(0,0,3, ofGetHeight());
-	ofRect(0,ofGetHeight()-3,ofGetWidth(), 3);
-	ofRect(0,0,ofGetWidth(), 3);
-	//box2d.draw();
 }
 
 //--------------------------------------------------------------
@@ -335,9 +224,9 @@ void testApp::keyPressed(int key){
 	} else if (key == 'd'){
 		bDrawDiagnostic = !bDrawDiagnostic;
 	}
-	else if (key== 't')
+	else if (key== '+')
 		threshold++;
-	else if (key== 'g')
+	else if (key== '-')
 		threshold--;
 }
 

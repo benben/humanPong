@@ -38,7 +38,6 @@ class testApp : public ofBaseApp{
 
         //HUMAN PONG RELATED STUFF
 
-		void setupGame();
 		void updateGame();
 		void drawGame();
         void resetBall();
