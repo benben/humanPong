@@ -30,10 +30,14 @@ class testApp : public ofBaseApp{
 		ofxCvGrayscaleImage 	grayDiff;
 		ofxCvGrayscaleImage     grayDiffSmall;
 
-        ofxCvContourFinder 	contourFinder;
+        ofxCvContourFinder 	    contourFinder;
 
-		int 				threshold;
-		bool				bLearnBakground;
+		int 				    threshold;
+		bool				    bLearnBakground;
+
+        float                   scaleX, scaleY;
+
+        int                     blur;
 
 
         //HUMAN PONG RELATED STUFF
@@ -53,6 +57,12 @@ class testApp : public ofBaseApp{
         ofxBox2d                box2d;
         ofxCvBlob               blob;
 
-        bool                    bDrawDiagnostic;
+        bool                    bGamePaused, bDrawBlobs;
+
+        //WARP
+
+        		ofPoint             warpPoints[4];
+		int whichCorner;
+		int bgColor;
 };
 #endif
